@@ -32,6 +32,13 @@ class PyModel:
     metadata: dict[str, Any] = field(default_factory=dict)
     """Additional metadata associated with the model."""
 
+    def __getitem__(self, key: str) -> PyField:
+        """Get a field by name."""
+        for f in self.fields:
+            if f.name == key:
+                return f
+        raise KeyError(key)
+
     @classmethod
     def from_class(cls, model_class: type[T]) -> PyModel:
         """Create a Model from a class (Pydantic model or dataclass).
@@ -92,20 +99,14 @@ class PyModel:
             List of fields matching the filter criteria
         """
         result = self.fields.copy()
-
         if required is not None:
             result = [f for f in result if f.is_required == required]
-
         if hidden is not None:
             result = [f for f in result if f.hidden == hidden]
-
         if readonly is not None:
             result = [f for f in result if f.readonly == readonly]
-
         if deprecated is not None:
             result = [f for f in result if f.deprecated == deprecated]
-
         if field_type is not None:
             result = [f for f in result if f.field_type == field_type]
-
         return result
