@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import inspect
 from textwrap import dedent
+from typing import Any, cast
 
 
 def get_dataclass_field_docs(cls: type) -> dict[str, str]:
@@ -34,3 +35,44 @@ def get_dataclass_field_docs(cls: type) -> dict[str, str]:
         return {}
     else:
         return docstrings
+
+
+def to_pymodel(model_class: type):
+    from typico.pyfield.pyfield import get_fields
+    from typico.pyfield.pymodel import PyModel
+
+    fields = get_fields(model_class)
+    name = model_class.__name__
+    title = name
+    description = inspect.getdoc(model_class)
+    metadata: dict[str, Any] = {}
+    try:
+        from pydantic import BaseModel
+
+        if issubclass(model_class, BaseModel):
+            pass
+    except (ImportError, TypeError):
+        pass
+
+    # Handle dataclasses
+    import dataclasses
+
+    frozen = False
+    try:
+        dc_params = cast(dict[str, Any], getattr(model_class, "__dataclass_params__", {}))
+        if isinstance(dc_params, dataclasses.Field):
+            frozen = getattr(dc_params, "frozen", False)
+        else:
+            frozen = dc_params.get("frozen", False)
+    except (AttributeError, TypeError):
+        pass
+
+    # Return dataclass model
+    return PyModel(
+        name=name,
+        fields=fields,
+        title=title,
+        description=description,
+        frozen=frozen,
+        metadata=metadata,
+    )

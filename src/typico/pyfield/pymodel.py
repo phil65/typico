@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 from typico.pyfield.pyfield import PyField, get_fields as get_model_fields
 
@@ -42,59 +42,13 @@ class PyModel:
         Returns:
             Model instance containing metadata about the class
         """
-        # Extract fields
-        fields = get_model_fields(model_class)
+        from typico.pyfield import dataclass_adapter, pydantic_adapter
 
-        # Get model name
-        name = model_class.__name__
-
-        # Get model title (default to class name if not available)
-        title = name
-
-        # Get model description from docstring
-        description = inspect.getdoc(model_class)
-
-        # Initialize metadata dictionary
-        metadata = {}
-
-        # Handle Pydantic models
         try:
             from pydantic import BaseModel
 
             if issubclass(model_class, BaseModel):
-                config = getattr(model_class, "model_config", {})
-                schema = model_class.model_json_schema()  # type: ignore
-
-                # Get title from schema if available
-                if "title" in schema:
-                    title = schema["title"]
-
-                # Get description from schema if available
-                if not description and "description" in schema:
-                    description = schema["description"]
-
-                # Check if model is frozen
-                frozen = config.get("frozen", False)
-
-                # Extract any extra schema properties to metadata
-                for k, v in schema.items():
-                    if k not in {
-                        "title",
-                        "description",
-                        "type",
-                        "properties",
-                        "required",
-                    }:
-                        metadata[k] = v  # noqa: PERF403
-
-                return cls(
-                    name=name,
-                    fields=fields,
-                    title=title,
-                    description=description,
-                    frozen=frozen,
-                    metadata=metadata,
-                )
+                return pydantic_adapter.to_pymodel(model_class)
         except (ImportError, TypeError):
             pass
 
@@ -103,29 +57,13 @@ class PyModel:
 
         if dataclasses.is_dataclass(model_class):
             # Check if dataclass is frozen
-            frozen = False
-            try:
-                dc_params = cast(
-                    dict[str, Any], getattr(model_class, "__dataclass_params__", {})
-                )
-                if isinstance(dc_params, dataclasses.Field):
-                    frozen = getattr(dc_params, "frozen", False)
-                else:
-                    frozen = dc_params.get("frozen", False)
-            except (AttributeError, TypeError):
-                pass
-
-            # Return dataclass model
-            return cls(
-                name=name,
-                fields=fields,
-                title=title,
-                description=description,
-                frozen=frozen,
-                metadata=metadata,
-            )
-
+            return dataclass_adapter.to_pymodel(model_class)
         # For other classes, just return basic info
+
+        fields = get_model_fields(model_class)
+        name = model_class.__name__
+        title = name
+        description = inspect.getdoc(model_class)
         return cls(
             name=name,
             fields=fields,

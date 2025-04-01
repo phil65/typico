@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Annotated, Any, TypeVar, get_args, get_origin
 import fieldz
 
 from typico.pyfield.constraints import Constraints
-from typico.pyfield.dataclass_adapter import get_dataclass_field_docs
 
 
 if TYPE_CHECKING:
@@ -297,6 +296,8 @@ class PyField[T]:
 
 def get_fields(model_class: type) -> list[PyField]:
     """Extract fields from a model class and convert to PyFields."""
+    from typico.pyfield.dataclass_adapter import get_dataclass_field_docs
+
     # First check if it's a dataclass and extract field docstrings
     field_docstrings = {}
     if dataclasses.is_dataclass(model_class):
@@ -314,6 +315,8 @@ def get_fields(model_class: type) -> list[PyField]:
 
 if __name__ == "__main__":
     import dataclasses
+
+    from typico.pyfield.dataclass_adapter import get_dataclass_field_docs
 
     @dataclasses.dataclass
     class TestConfig:
