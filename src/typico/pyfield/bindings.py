@@ -22,7 +22,7 @@ class FieldBinding:
     instance: Any
     """The model instance containing the value."""
 
-    _ui_state: dict[str, Any] = dc_field(default_factory=dict)
+    ui_state: dict[str, Any] = dc_field(default_factory=dict)
     """Additional UI state for this field (e.g., validation errors, dirty status)."""
 
     @property
@@ -43,19 +43,11 @@ class FieldBinding:
     @property
     def validation_errors(self) -> list[str]:
         """Get validation errors for the current value."""
-        return self._ui_state.get("validation_errors", [])
+        return self.ui_state.get("validation_errors", [])
 
     def set_validation_errors(self, errors: list[str]) -> None:
         """Set validation errors for this field."""
-        self._ui_state["validation_errors"] = errors
-
-    def set_ui_state(self, key: str, value: Any) -> None:
-        """Set arbitrary UI state for this field."""
-        self._ui_state[key] = value
-
-    def get_ui_state(self, key: str, default: Any = None) -> Any:
-        """Get arbitrary UI state for this field."""
-        return self._ui_state.get(key, default)
+        self.ui_state["validation_errors"] = errors
 
 
 @dataclass
@@ -71,7 +63,7 @@ class ModelBinding:
     fields: list[FieldBinding] = dc_field(default_factory=list)
     """Bindings for each field in the model."""
 
-    _ui_state: dict[str, Any] = dc_field(default_factory=dict)
+    ui_state: dict[str, Any] = dc_field(default_factory=dict)
     """Additional UI state for this model (e.g., form dirty status)."""
 
     def __getitem__(self, key: str) -> FieldBinding:
