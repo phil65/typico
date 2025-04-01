@@ -97,9 +97,7 @@ class PyField[T]:
     """Additional metadata associated with the field."""
 
     @classmethod
-    def from_fieldz(
-        cls, fieldz_field: fieldz.Field, parent_model: type | None = None
-    ) -> PyField:
+    def from_fieldz(cls, fieldz_field: fieldz.Field, parent_model: type) -> PyField:
         """Convert a fieldz Field to PyField.
 
         Args:
@@ -112,17 +110,12 @@ class PyField[T]:
         fieldz_field = fieldz_field.parse_annotated()
 
         # If this is a Pydantic field, delegate to from_pydantic
-        if parent_model is not None:
-            with contextlib.suppress(ImportError):
-                from pydantic import BaseModel
+        with contextlib.suppress(ImportError):
+            from pydantic import BaseModel
 
-                if (
-                    isinstance(parent_model, type)
-                    and issubclass(parent_model, BaseModel)
-                    and hasattr(parent_model, "model_fields")
-                ):
-                    # For Pydantic models, use specialized method
-                    return cls.from_pydantic(fieldz_field.name, parent_model)
+            if isinstance(parent_model, type) and issubclass(parent_model, BaseModel):
+                # For Pydantic models, use specialized method
+                return cls.from_pydantic(fieldz_field.name, parent_model)
 
         # Extract field_type from fieldz metadata or json_schema_extra
         field_type = None
@@ -137,20 +130,16 @@ class PyField[T]:
         # If we have an annotated type, check it for field_type too
         raw_type = fieldz_field.type
         if fieldz_field.annotated_type:
-            base_type, annotated_field_type = extract_from_annotated(
+            base_type, annotated_type = extract_from_annotated(
                 fieldz_field.annotated_type,
                 "field_type",
             )
-            if annotated_field_type:
-                field_type = annotated_field_type
-            # Keep the base type, not the Annotated wrapper
+            if annotated_type:
+                field_type = annotated_type
             raw_type = base_type
 
-        # Convert constraints
         constraints = Constraints.from_fieldz(fieldz_field.constraints)
-        # Extract examples
         examples = fieldz_field.metadata.get("examples")
-
         placeholder = None
         # 1. Check direct metadata
         if "placeholder" in fieldz_field.metadata:
