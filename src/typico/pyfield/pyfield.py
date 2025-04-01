@@ -176,21 +176,15 @@ class PyField[T]:
         hidden = fieldz_field.metadata.get("exclude", False) is True
         readonly = fieldz_field.metadata.get("frozen", False) is True
         deprecated = fieldz_field.metadata.get("deprecated", False) is True
-
-        # Create the PyField
-        meta = {
-            k: v
-            for k, v in fieldz_field.metadata.items()
-            if k
-            not in {
-                "field_type",
-                "exclude",
-                "frozen",
-                "deprecated",
-                "examples",
-                "placeholder",
-            }
+        exclude = {
+            "field_type",
+            "exclude",
+            "frozen",
+            "deprecated",
+            "examples",
+            "placeholder",
         }
+        meta = {k: v for k, v in fieldz_field.metadata.items() if k not in exclude}
         return cls(
             name=fieldz_field.name,
             raw_type=raw_type,
@@ -275,7 +269,7 @@ class PyField[T]:
         return cls(
             name=name,
             raw_type=raw_type,
-            parent_model=parent_model,  # mypy: ignore
+            parent_model=parent_model,  # type: ignore
             field_type=field_type,
             title=field_info.title or name.replace("_", " ").capitalize(),
             description=field_info.description,
@@ -329,9 +323,7 @@ if __name__ == "__main__":
         debug: bool = False
         """Enable debug mode."""
 
-    # Test our field docstring parsing
     field_docs = get_dataclass_field_docs(TestConfig)
-
     print("Parsed field docstrings:")
     for name, doc in field_docs.items():
         print(f"  {name}: {doc!r}")

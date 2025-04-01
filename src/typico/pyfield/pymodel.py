@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import Any, TypeVar
+from typing import Any
 
 from typico.pyfield.pyfield import PyField, get_fields as get_model_fields
-
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -40,7 +37,7 @@ class PyModel:
         raise KeyError(key)
 
     @classmethod
-    def from_class(cls, model_class: type[T]) -> PyModel:
+    def from_class(cls, model_class: type) -> PyModel:
         """Create a Model from a class (Pydantic model or dataclass).
 
         Args:
