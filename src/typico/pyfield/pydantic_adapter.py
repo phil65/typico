@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, get_args, get_origin
 
-from typico.pyfield.pyfield import get_fields
+from typico.pyfield.constraints import Constraints
+from typico.pyfield.pyfield import PyField, get_fields
 from typico.pyfield.pymodel import PyModel
 
 
@@ -43,5 +45,78 @@ def to_pymodel(model_class: type[BaseModel]):
         title=title,
         description=description,
         frozen=frozen,
+        metadata=metadata,
+    )
+
+
+def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
+    field_info = parent_model.model_fields[name]
+    raw_type = field_info.annotation
+    field_type = None
+
+    for meta in field_info.metadata:
+        if isinstance(meta, dict) and "field_type" in meta:
+            field_type = meta["field_type"]
+            break
+
+    # If not found and it's still an Annotated type, try direct extraction
+    if field_type is None and get_origin(raw_type) is Annotated:
+        args = get_args(raw_type)
+        base_type = args[0]
+
+        for arg in args[1:]:
+            if isinstance(arg, dict) and "field_type" in arg:
+                field_type = arg["field_type"]
+                break
+
+        raw_type = base_type
+
+    # Check json_schema_extra for field_type if not found
+    if (
+        field_type is None
+        and field_info.json_schema_extra
+        and isinstance(field_info.json_schema_extra, dict)
+    ):
+        field_type = field_info.json_schema_extra.get("field_type")
+        assert isinstance(field_type, str) or field_type is None
+
+    # Get constraints from JSON schema
+    schema = parent_model.model_json_schema()
+    field_schema = schema.get("properties", {}).get(name, {})
+    constraints = Constraints.from_jsonschema(field_schema)
+    is_required = name in schema.get("required", [])
+    from pydantic.fields import PydanticUndefined
+
+    has_default = field_info.default is not PydanticUndefined
+    default_value = (
+        None if field_info.default is PydanticUndefined else field_info.default
+    )
+    metadata = {}
+    if field_info.json_schema_extra:
+        if isinstance(field_info.json_schema_extra, dict):
+            # Direct dictionary case
+            metadata = field_info.json_schema_extra.copy()
+        elif callable(field_info.json_schema_extra):
+            with contextlib.suppress(Exception):
+                field_info.json_schema_extra(metadata)
+    metadata = {k: v for k, v in metadata.items() if k != "field_type"}
+    return PyField(
+        name=name,
+        raw_type=raw_type,
+        parent_model=parent_model,  # type: ignore
+        field_type=field_type,
+        title=field_info.title or name.replace("_", " ").capitalize(),
+        description=field_info.description,
+        placeholder=str(field_info.examples[0])
+        if field_info.examples and field_info.examples[0] is not None
+        else None,
+        examples=field_info.examples,
+        hidden=field_info.exclude or False,
+        readonly=getattr(field_info, "frozen", False),
+        deprecated=field_info.deprecated is not None,
+        is_required=is_required,
+        default=default_value,
+        has_default=has_default,
+        constraints=constraints,
         metadata=metadata,
     )
