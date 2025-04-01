@@ -167,24 +167,17 @@ Typico provides powerful bindings to connect model definitions with actual insta
 class FieldBinding:
     field: PyField           # Field metadata
     instance: Any            # Model instance
-
+    ui_state: dict[str, Any] # UI state
     @property
     def value(self) -> Any:  # Get current value
-
     @value.setter
     def value(self, new_value: Any): # Set new value
-
     @property
     def is_valid(self) -> bool:      # Check if valid
-
     @property
     def validation_errors(self) -> list[str]: # Get errors
-
-    # UI state management
     def set_validation_errors(self, errors: list[str]) -> None
-    def set_ui_state(self, key: str, value: Any) -> None
-    def get_ui_state(self, key: str, default: Any = None) -> Any
-```
+
 
 ### Model Binding
 
@@ -194,14 +187,9 @@ class ModelBinding:
     model: PyModel           # Model metadata
     instance: Any            # Model instance
     fields: list[FieldBinding] # Field bindings
-
     # Access fields by name
     def __getitem__(self, key: str) -> FieldBinding
-
-    # Get field binding
     def get_field_binding(self, name: str) -> FieldBinding
-
-    # Create from instance
     @classmethod
     def from_instance(cls, instance: object) -> ModelBinding
 ```
