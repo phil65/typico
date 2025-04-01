@@ -90,6 +90,50 @@ class Constraints:
 
         return constraints
 
+    @classmethod
+    def from_jsonschema(cls, schema: dict[str, Any]) -> Constraints:
+        """Create a Constraints instance from JSON Schema properties.
+
+        Args:
+            schema: Dictionary containing JSON Schema constraint properties
+
+        Returns:
+            A Constraints instance with values populated from the schema
+        """
+        constraints = cls()
+
+        # Extract numeric constraints
+        if "minimum" in schema:
+            constraints.min_value = schema["minimum"]
+        if "maximum" in schema:
+            constraints.max_value = schema["maximum"]
+        if "exclusiveMinimum" in schema:
+            constraints.min_value = schema["exclusiveMinimum"]
+            constraints.exclusive_min = True
+        if "exclusiveMaximum" in schema:
+            constraints.max_value = schema["exclusiveMaximum"]
+            constraints.exclusive_max = True
+        if "multipleOf" in schema:
+            constraints.multiple_of = schema["multipleOf"]
+
+        # Extract string/array constraints
+        if "minLength" in schema:
+            constraints.min_length = schema["minLength"]
+        if "maxLength" in schema:
+            constraints.max_length = schema["maxLength"]
+        if "pattern" in schema:
+            constraints.pattern = schema["pattern"]
+        if "minItems" in schema:
+            constraints.min_items = schema["minItems"]
+        if "maxItems" in schema:
+            constraints.max_items = schema["maxItems"]
+
+        # Extract allowed values if enum is present
+        if "enum" in schema:
+            constraints.allowed_values = schema["enum"]
+
+        return constraints
+
 
 def extract_from_annotated(type_annotation: Any, name: str) -> tuple[Any, Any | None]:
     """Extract the base type and a named metadata value from an Annotated type.
@@ -306,17 +350,10 @@ class PyField[T]:
         Returns:
             PyField representation of the model field
         """
-        # Get field info directly from the model
-        field_info = parent_model.model_fields.get(name)
-        if field_info is None:
-            msg = f"Field {name!r} not found in {parent_model.__name__}"
-            raise ValueError(msg)
-
-        # Extract raw type and handle Annotated types
+        field_info = parent_model.model_fields[name]
         raw_type = field_info.annotation
         field_type = None
 
-        # Check metadata from Annotated type
         for meta in field_info.metadata:
             if isinstance(meta, dict) and "field_type" in meta:
                 field_type = meta["field_type"]
@@ -346,27 +383,7 @@ class PyField[T]:
         # Get constraints from JSON schema
         schema = parent_model.model_json_schema()
         field_schema = schema.get("properties", {}).get(name, {})
-        constraints = Constraints()
-
-        # Extract constraints
-        if "minimum" in field_schema:
-            constraints.min_value = field_schema["minimum"]
-        if "maximum" in field_schema:
-            constraints.max_value = field_schema["maximum"]
-        if "exclusiveMinimum" in field_schema:
-            constraints.min_value = field_schema["exclusiveMinimum"]
-            constraints.exclusive_min = True
-        if "exclusiveMaximum" in field_schema:
-            constraints.max_value = field_schema["exclusiveMaximum"]
-            constraints.exclusive_max = True
-        if "minLength" in field_schema:
-            constraints.min_length = field_schema["minLength"]
-        if "maxLength" in field_schema:
-            constraints.max_length = field_schema["maxLength"]
-        if "pattern" in field_schema:
-            constraints.pattern = field_schema["pattern"]
-
-        # Determine required status and default value
+        constraints = Constraints.from_jsonschema(field_schema)
         is_required = name in schema.get("required", [])
         from pydantic.fields import PydanticUndefined
 
@@ -378,21 +395,11 @@ class PyField[T]:
         if field_info.json_schema_extra:
             if isinstance(field_info.json_schema_extra, dict):
                 # Direct dictionary case
-                metadata = {
-                    k: v
-                    for k, v in field_info.json_schema_extra.items()
-                    if k != "field_type"
-                }
+                metadata = field_info.json_schema_extra.copy()
             elif callable(field_info.json_schema_extra):
-                # Callable case - create a temporary schema dict to extract metadata
-                tmp_schema: dict[str, Any] = {}
-                try:
-                    field_info.json_schema_extra(tmp_schema)
-                    # After the callable modifies tmp_schema, extract any metadata
-                    metadata = {k: v for k, v in tmp_schema.items() if k != "field_type"}
-                except Exception:  # noqa: BLE001
-                    # If calling the function fails, we just continue with empty metadata
-                    pass
+                with contextlib.suppress(Exception):
+                    field_info.json_schema_extra(metadata)
+        metadata = {k: v for k, v in metadata.items() if k != "field_type"}
         # Create the PyField directly
         return cls(
             name=name,
