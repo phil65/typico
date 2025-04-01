@@ -374,12 +374,30 @@ class PyField[T]:
         default_value = (
             None if field_info.default is PydanticUndefined else field_info.default
         )
-
+        metadata = {}
+        if field_info.json_schema_extra:
+            if isinstance(field_info.json_schema_extra, dict):
+                # Direct dictionary case
+                metadata = {
+                    k: v
+                    for k, v in field_info.json_schema_extra.items()
+                    if k != "field_type"
+                }
+            elif callable(field_info.json_schema_extra):
+                # Callable case - create a temporary schema dict to extract metadata
+                tmp_schema: dict[str, Any] = {}
+                try:
+                    field_info.json_schema_extra(tmp_schema)
+                    # After the callable modifies tmp_schema, extract any metadata
+                    metadata = {k: v for k, v in tmp_schema.items() if k != "field_type"}
+                except Exception:  # noqa: BLE001
+                    # If calling the function fails, we just continue with empty metadata
+                    pass
         # Create the PyField directly
         return cls(
             name=name,
             raw_type=raw_type,
-            parent_model=parent_model,  # pyright: ignore
+            parent_model=parent_model,  # mypy: ignore
             field_type=field_type,
             title=field_info.title or name.replace("_", " ").capitalize(),
             description=field_info.description,
@@ -394,11 +412,7 @@ class PyField[T]:
             default=default_value,
             has_default=has_default,
             constraints=constraints,
-            metadata={
-                k: v
-                for k, v in (field_info.json_schema_extra or {}).items()
-                if k != "field_type"
-            },
+            metadata=metadata,
         )
 
 
