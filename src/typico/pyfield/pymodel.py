@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from typico.pyfield.pyfield import PyField, get_fields as get_model_fields
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from typico.pyfield.bindings import ModelBinding, ValidationResult
 
 
 @dataclass
@@ -28,6 +34,9 @@ class PyModel:
 
     metadata: dict[str, Any] = field(default_factory=dict)
     """Additional metadata associated with the model."""
+
+    validator: Callable[[ModelBinding], ValidationResult] | None = None
+    """Callable that validates the model instance."""
 
     def __getitem__(self, key: str) -> PyField:
         """Get a field by name."""

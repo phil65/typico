@@ -101,9 +101,6 @@ class PyField[T]:
     default: Any = MISSING_VALUE
     """The default value for the field."""
 
-    has_default: bool = False
-    """Whether the field has a default value defined."""
-
     constraints: Constraints = field(default_factory=Constraints)
     """Validation constraints for the field."""
 
@@ -135,6 +132,8 @@ class PyField[T]:
         Returns:
             Equivalent PyField instance
         """
+        from typico.pyfield import pydantic_adapter
+
         fieldz_field = fieldz_field.parse_annotated()
 
         # If this is a Pydantic field, delegate to from_pydantic
@@ -142,7 +141,7 @@ class PyField[T]:
             from pydantic import BaseModel
 
             if isinstance(parent_model, type) and issubclass(parent_model, BaseModel):
-                return cls.from_pydantic(fieldz_field.name, parent_model)
+                return pydantic_adapter.to_pyfield(fieldz_field.name, parent_model)
 
         # Extract field_type from fieldz metadata or json_schema_extra
         field_type = None
@@ -189,19 +188,16 @@ class PyField[T]:
         elif examples and examples[0] is not None:
             placeholder = str(examples[0])
 
-        # Convert fieldz.MISSING to our own sentinel
-        has_default = (
-            fieldz_field.default != fieldz.Field.MISSING
-            or fieldz_field.default_factory != fieldz.Field.MISSING
-        )
-
         default: Any = MISSING_VALUE  # Start with our sentinel
         if fieldz_field.default != fieldz.Field.MISSING:
             default = fieldz_field.default
         elif fieldz_field.default_factory != fieldz.Field.MISSING:
             with contextlib.suppress(Exception):
                 default = fieldz_field.default_factory()
-        is_required = not has_default
+        is_required = not (
+            fieldz_field.default != fieldz.Field.MISSING
+            or fieldz_field.default_factory != fieldz.Field.MISSING
+        )
         hidden = fieldz_field.metadata.get("exclude", False) is True
         readonly = fieldz_field.metadata.get("frozen", False) is True
         deprecated = fieldz_field.metadata.get("deprecated", False) is True
@@ -228,7 +224,6 @@ class PyField[T]:
             deprecated=deprecated,
             is_required=is_required,
             default=default,
-            has_default=has_default,
             constraints=constraints,
             metadata=meta,
         )
@@ -247,6 +242,11 @@ class PyField[T]:
         from typico.pyfield import pydantic_adapter
 
         return pydantic_adapter.to_pyfield(name, parent_model)
+
+    @property
+    def has_default(self) -> bool:
+        """Check if this field has a default value set."""
+        return self.default is not MISSING_VALUE
 
     def is_of_type(self, target_type: type | tuple[type, ...]) -> bool:
         """Check if this field's type matches the target type.

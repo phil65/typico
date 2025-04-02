@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import contextlib
 import inspect
-from typing import TYPE_CHECKING, Annotated, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
+from pydantic import ValidationError
+
+from typico.pyfield.bindings import ModelBinding, ValidationResult
 from typico.pyfield.constraints import Constraints
-from typico.pyfield.pyfield import PyField, get_fields
+from typico.pyfield.pyfield import MISSING_VALUE, PyField, get_fields
 from typico.pyfield.pymodel import PyModel
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic import BaseModel
 
 
@@ -39,6 +44,30 @@ def to_pymodel(model_class: type[BaseModel]):
         }:
             metadata[k] = v  # noqa: PERF403
 
+    def validator_wrapper(binding: ModelBinding) -> ValidationResult:
+        try:
+            data = {b.field.name: b.value for b in binding.fields}
+            instance = model_class.model_validate(data)
+            return ValidationResult(is_valid=True, validated_instance=instance)
+        except ValidationError as e:
+            field_errors: dict[str, Any] = {}
+            global_errors = []
+            for err in e.errors():
+                loc: Sequence[Any] = err.get("loc", [])
+                msg = err.get("msg", "")
+                # If location is empty or points to "__root__", it's a global error
+                if not loc or loc[0] == "__root__":
+                    global_errors.append(msg)
+                else:
+                    # Otherwise it's a field error
+                    field_name = ".".join(str(x) for x in loc)
+                    field_errors.setdefault(field_name, []).append(msg)
+            return ValidationResult(
+                is_valid=False,
+                field_errors=field_errors,
+                global_errors=global_errors,
+            )
+
     return PyModel(
         name=name,
         fields=fields,
@@ -46,6 +75,7 @@ def to_pymodel(model_class: type[BaseModel]):
         description=description,
         frozen=frozen,
         metadata=metadata,
+        validator=validator_wrapper,
     )
 
 
@@ -87,9 +117,8 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
     is_required = name in schema.get("required", [])
     from pydantic.fields import PydanticUndefined
 
-    has_default = field_info.default is not PydanticUndefined
     default_value = (
-        None if field_info.default is PydanticUndefined else field_info.default
+        MISSING_VALUE if field_info.default is PydanticUndefined else field_info.default
     )
     metadata = {}
     if field_info.json_schema_extra:
@@ -100,6 +129,7 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
             with contextlib.suppress(Exception):
                 field_info.json_schema_extra(metadata)
     metadata = {k: v for k, v in metadata.items() if k != "field_type"}
+
     return PyField(
         name=name,
         raw_type=raw_type,
@@ -116,7 +146,6 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
         deprecated=field_info.deprecated is not None,
         is_required=is_required,
         default=default_value,
-        has_default=has_default,
         constraints=constraints,
         metadata=metadata,
     )

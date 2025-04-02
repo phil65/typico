@@ -13,6 +13,28 @@ T = TypeVar("T")
 
 
 @dataclass
+class ValidationResult:
+    """Result of validating data against a model."""
+
+    is_valid: bool = True
+    field_errors: dict[str, list[str]] = dc_field(default_factory=dict)
+    global_errors: list[str] = dc_field(default_factory=list)
+    validated_instance: Any = None
+
+    @property
+    def errors(self) -> dict[str, list[str]]:
+        """Legacy access to combined errors."""
+        combined = self.field_errors.copy()
+        if self.global_errors:
+            combined["_errors"] = self.global_errors
+        return combined
+
+    def __bool__(self) -> bool:
+        """Return True if validation was successful, False otherwise."""
+        return self.is_valid
+
+
+@dataclass
 class FieldBinding:
     """Connects a PyField to a specific instance value."""
 
@@ -70,6 +92,28 @@ class ModelBinding:
         """Get a field binding by name."""
         return self.get_field_binding(key)
 
+    def validate(self) -> ValidationResult:
+        """Validate the current state of this binding."""
+        # If the model has a custom validator, use it with the binding itself
+        if self.model.validator:
+            return self.model.validator(self)
+
+        # Basic validation if no custom validator
+        errors: dict[str, Any] = {}
+        for field_binding in self.fields:
+            field = field_binding.field
+            value = field_binding.value
+
+            # Check required fields
+            if value is None and not field.has_default and field.is_required:
+                errors.setdefault(field.name, []).append("This field is required")
+
+        return ValidationResult(
+            is_valid=not errors,
+            field_errors=errors,
+            validated_instance=self.instance,
+        )
+
     @classmethod
     def from_instance(cls, instance: object) -> ModelBinding:
         """Create a ModelBinding from a model instance.
@@ -83,10 +127,8 @@ class ModelBinding:
         from typico.pyfield import get_model
 
         model = get_model(instance.__class__)
-        binding = cls(model=model, instance=instance)
-        binding.fields = [FieldBinding(field=f, instance=instance) for f in model.fields]
-
-        return binding
+        fields = [FieldBinding(field=f, instance=instance) for f in model.fields]
+        return cls(model=model, instance=instance, fields=fields)
 
     def get_field_binding(self, name: str) -> FieldBinding:
         """Get a field binding by name.
