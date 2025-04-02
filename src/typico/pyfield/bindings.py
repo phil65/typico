@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
@@ -9,7 +9,18 @@ if TYPE_CHECKING:
     from typico.pyfield.pymodel import PyModel
 
 
-T = TypeVar("T")
+@dataclass
+class ValidationErrorDetail:
+    """Structured information about a validation error."""
+
+    type: str = "value_error"
+    msg: str = "Validation error"
+    loc: tuple[str | int, ...] = dc_field(default_factory=tuple)
+    input_value: Any = None
+    ctx: dict[str, Any] = dc_field(default_factory=dict)
+
+    def __str__(self) -> str:
+        return f"{self.type}: {self.msg}"
 
 
 @dataclass
@@ -17,20 +28,25 @@ class ModelValidationResult:
     """Result of validating data against a model."""
 
     is_valid: bool = True
-    field_errors: dict[str, list[str]] = dc_field(default_factory=dict)
-    global_errors: list[str] = dc_field(default_factory=list)
+    field_errors: dict[str, list[ValidationErrorDetail]] = dc_field(default_factory=dict)
+    global_errors: list[ValidationErrorDetail] = dc_field(default_factory=list)
     validated_instance: Any = None
 
     @property
-    def errors(self) -> dict[str, list[str]]:
-        """Legacy access to combined errors."""
-        combined = self.field_errors.copy()
-        if self.global_errors:
-            combined["_errors"] = self.global_errors
-        return combined
+    def field_messages(self) -> dict[str, list[str]]:
+        """Get human-readable error messages by field."""
+        return {
+            field: [err.msg for err in errors]
+            for field, errors in self.field_errors.items()
+        }
+
+    @property
+    def global_messages(self) -> list[str]:
+        """Get human-readable global error messages."""
+        return [err.msg for err in self.global_errors]
 
     def __bool__(self) -> bool:
-        """Return True if validation was successful, False otherwise."""
+        """Return True if validation was successful."""
         return self.is_valid
 
 
@@ -71,29 +87,32 @@ class FieldBinding:
     #     """Set validation errors for this field."""
     #     self.ui_state["validation_errors"] = errors
 
-    def validate(self) -> list[str]:
+    def validate(self) -> list[ValidationErrorDetail]:
         """Validate this field's current value.
 
-        Performs basic validation like required fields and constraint checks.
+        Performs basic validation including required fields and constraint checks.
 
         Returns:
-            List of validation error messages, empty if valid
+            List of validation error details, empty if valid
         """
-        errors = []
+        errors: list[ValidationErrorDetail] = []
         value = self.value
         field = self.field
 
         # Check if required
         if value is None and not field.has_default and field.is_required:
-            errors.append("This field is required")
+            detail = ValidationErrorDetail(
+                type="value_error.missing",
+                msg="This field is required",
+                loc=(field.name,),
+                input_value=value,
+            )
+            errors.append(detail)
             return errors
 
         # Skip constraint validation for None values
         if value is None:
             return errors
-
-        # Type validation
-        # TODO: Implement better type checking
 
         # Constraint validation
         constraints = field.constraints
@@ -101,50 +120,129 @@ class FieldBinding:
         # Number constraints
         if isinstance(value, int | float):
             if constraints.min_value is not None:
-                if constraints.exclusive_min:
-                    if value <= constraints.min_value:
-                        errors.append(f"Must be greater than {constraints.min_value}")
-                elif value < constraints.min_value:
-                    errors.append(
-                        f"Must be greater than or equal to {constraints.min_value}"
+                if constraints.exclusive_min and value <= constraints.min_value:
+                    detail = ValidationErrorDetail(
+                        type="value_error.number.not_gt",
+                        msg=f"Must be greater than {constraints.min_value}",
+                        loc=(field.name,),
+                        input_value=value,
+                        ctx={"limit_value": constraints.min_value},
                     )
+                    errors.append(detail)
+                elif not constraints.exclusive_min and value < constraints.min_value:
+                    detail = ValidationErrorDetail(
+                        type="value_error.number.not_ge",
+                        msg=f"Must be greater than or equal to {constraints.min_value}",
+                        loc=(field.name,),
+                        input_value=value,
+                        ctx={"limit_value": constraints.min_value},
+                    )
+                    errors.append(detail)
 
             if constraints.max_value is not None:
-                if constraints.exclusive_max:
-                    if value >= constraints.max_value:
-                        errors.append(f"Must be less than {constraints.max_value}")
-                elif value > constraints.max_value:
-                    errors.append(
-                        f"Must be less than or equal to {constraints.max_value}"
+                if constraints.exclusive_max and value >= constraints.max_value:
+                    detail = ValidationErrorDetail(
+                        type="value_error.number.not_lt",
+                        msg=f"Must be less than {constraints.max_value}",
+                        loc=(field.name,),
+                        input_value=value,
+                        ctx={"limit_value": constraints.max_value},
                     )
+                    errors.append(detail)
+                elif not constraints.exclusive_max and value > constraints.max_value:
+                    detail = ValidationErrorDetail(
+                        type="value_error.number.not_le",
+                        msg=f"Must be less than or equal to {constraints.max_value}",
+                        loc=(field.name,),
+                        input_value=value,
+                        ctx={"limit_value": constraints.max_value},
+                    )
+                    errors.append(detail)
 
             if (
                 constraints.multiple_of is not None
                 and value % constraints.multiple_of != 0
             ):
-                errors.append(f"Must be a multiple of {constraints.multiple_of}")
+                detail = ValidationErrorDetail(
+                    type="value_error.number.not_multiple",
+                    msg=f"Must be a multiple of {constraints.multiple_of}",
+                    loc=(field.name,),
+                    input_value=value,
+                    ctx={"multiple_of": constraints.multiple_of},
+                )
+                errors.append(detail)
 
         # String constraints
         if isinstance(value, str):
             if constraints.min_length is not None and len(value) < constraints.min_length:
-                errors.append(f"Must be at least {constraints.min_length} characters")
+                detail = ValidationErrorDetail(
+                    type="value_error.string.min_length",
+                    msg=f"Must be at least {constraints.min_length} characters",
+                    loc=(field.name,),
+                    input_value=value,
+                    ctx={"min_length": constraints.min_length},
+                )
+                errors.append(detail)
 
             if constraints.max_length is not None and len(value) > constraints.max_length:
-                errors.append(f"Must be at most {constraints.max_length} characters")
+                detail = ValidationErrorDetail(
+                    type="value_error.string.max_length",
+                    msg=f"Must be at most {constraints.max_length} characters",
+                    loc=(field.name,),
+                    input_value=value,
+                    ctx={"max_length": constraints.max_length},
+                )
+                errors.append(detail)
 
             if constraints.pattern is not None:
                 import re
 
                 if not re.match(constraints.pattern, value):
-                    errors.append(f"Must match pattern: {constraints.pattern}")
+                    detail = ValidationErrorDetail(
+                        type="value_error.string.pattern",
+                        msg=f"Must match pattern: {constraints.pattern}",
+                        loc=(field.name,),
+                        input_value=value,
+                        ctx={"pattern": constraints.pattern},
+                    )
+                    errors.append(detail)
 
         # Collection constraints
         if isinstance(value, list | tuple | set):
             if constraints.min_items is not None and len(value) < constraints.min_items:
-                errors.append(f"Must have at least {constraints.min_items} items")
+                detail = ValidationErrorDetail(
+                    type="value_error.collection.min_items",
+                    msg=f"Must have at least {constraints.min_items} items",
+                    loc=(field.name,),
+                    input_value=value,
+                    ctx={"min_items": constraints.min_items},
+                )
+                errors.append(detail)
 
             if constraints.max_items is not None and len(value) > constraints.max_items:
-                errors.append(f"Must have at most {constraints.max_items} items")
+                detail = ValidationErrorDetail(
+                    type="value_error.collection.max_items",
+                    msg=f"Must have at most {constraints.max_items} items",
+                    loc=(field.name,),
+                    input_value=value,
+                    ctx={"max_items": constraints.max_items},
+                )
+                errors.append(detail)
+
+        # Check allowed values
+        if (
+            constraints.allowed_values is not None
+            and value not in constraints.allowed_values
+        ):
+            vals = ", ".join(str(v) for v in constraints.allowed_values)
+            detail = ValidationErrorDetail(
+                type="value_error.not_in_enum",
+                msg=f"Value must be one of: {vals}",
+                loc=(field.name,),
+                input_value=value,
+                ctx={"allowed_values": constraints.allowed_values},
+            )
+            errors.append(detail)
 
         return errors
 
@@ -176,16 +274,19 @@ class ModelBinding:
             return self.model.validator(self)
 
         # Basic validation if no custom validator
-        errors: dict[str, Any] = {}
+        field_errors: dict[str, list[ValidationErrorDetail]] = {}
+        global_errors: list[ValidationErrorDetail] = []
+
         for field_binding in self.fields:
             # Get field-level validation errors
-            field_validation_errors = field_binding.validate()
-            if field_validation_errors:
-                errors[field_binding.field.name] = field_validation_errors
+            field_validation_details = field_binding.validate()
+            if field_validation_details:
+                field_errors[field_binding.field.name] = field_validation_details
 
         return ModelValidationResult(
-            is_valid=not errors,
-            field_errors=errors,
+            is_valid=not field_errors and not global_errors,
+            field_errors=field_errors,
+            global_errors=global_errors,
             validated_instance=self.instance,
         )
 

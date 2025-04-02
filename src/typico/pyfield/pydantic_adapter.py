@@ -6,15 +6,17 @@ from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from pydantic import ValidationError
 
-from typico.pyfield.bindings import ModelBinding, ModelValidationResult
+from typico.pyfield.bindings import (
+    ModelBinding,
+    ModelValidationResult,
+    ValidationErrorDetail,
+)
 from typico.pyfield.constraints import Constraints
 from typico.pyfield.pyfield import MISSING_VALUE, PyField, get_fields
 from typico.pyfield.pymodel import PyModel
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from pydantic import BaseModel
 
 
@@ -46,26 +48,38 @@ def to_pymodel(model_class: type[BaseModel]):
 
     def validator_wrapper(binding: ModelBinding) -> ModelValidationResult:
         try:
-            data = {b.field.name: b.value for b in binding.fields}
+            data = {
+                field_binding.field.name: field_binding.value
+                for field_binding in binding.fields
+            }
             instance = model_class.model_validate(data)
             return ModelValidationResult(is_valid=True, validated_instance=instance)
         except ValidationError as e:
-            field_errors: dict[str, Any] = {}
+            field_errors: dict[Any, Any] = {}
             global_errors = []
-            for err in e.errors():
-                loc: Sequence[Any] = err.get("loc", [])
-                msg = err.get("msg", "")
+
+            for error in e.errors():
+                # Convert dict from Pydantic to our dataclass
+                error_detail = ValidationErrorDetail(
+                    type=error.get("type", "value_error"),
+                    msg=error.get("msg", "Validation error"),
+                    loc=error.get("loc", ()),
+                    input_value=error.get("input", None),
+                    ctx=error.get("ctx", {}),
+                )
+
+                loc = error.get("loc", ())
+
                 # If location is empty or points to "__root__", it's a global error
                 if not loc or loc[0] == "__root__":
-                    global_errors.append(msg)
+                    global_errors.append(error_detail)
                 else:
                     # Otherwise it's a field error
-                    field_name = ".".join(str(x) for x in loc)
-                    field_errors.setdefault(field_name, []).append(msg)
+                    field_name = loc[0]
+                    field_errors.setdefault(field_name, []).append(error_detail)
+
             return ModelValidationResult(
-                is_valid=False,
-                field_errors=field_errors,
-                global_errors=global_errors,
+                is_valid=False, field_errors=field_errors, global_errors=global_errors
             )
 
     return PyModel(
