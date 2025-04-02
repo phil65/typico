@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from pydantic import ValidationError
 
-from typico.pyfield.bindings import ModelBinding, ValidationResult
+from typico.pyfield.bindings import ModelBinding, ModelValidationResult
 from typico.pyfield.constraints import Constraints
 from typico.pyfield.pyfield import MISSING_VALUE, PyField, get_fields
 from typico.pyfield.pymodel import PyModel
@@ -44,11 +44,11 @@ def to_pymodel(model_class: type[BaseModel]):
         }:
             metadata[k] = v  # noqa: PERF403
 
-    def validator_wrapper(binding: ModelBinding) -> ValidationResult:
+    def validator_wrapper(binding: ModelBinding) -> ModelValidationResult:
         try:
             data = {b.field.name: b.value for b in binding.fields}
             instance = model_class.model_validate(data)
-            return ValidationResult(is_valid=True, validated_instance=instance)
+            return ModelValidationResult(is_valid=True, validated_instance=instance)
         except ValidationError as e:
             field_errors: dict[str, Any] = {}
             global_errors = []
@@ -62,7 +62,7 @@ def to_pymodel(model_class: type[BaseModel]):
                     # Otherwise it's a field error
                     field_name = ".".join(str(x) for x in loc)
                     field_errors.setdefault(field_name, []).append(msg)
-            return ValidationResult(
+            return ModelValidationResult(
                 is_valid=False,
                 field_errors=field_errors,
                 global_errors=global_errors,

@@ -13,7 +13,7 @@ T = TypeVar("T")
 
 
 @dataclass
-class ValidationResult:
+class ModelValidationResult:
     """Result of validating data against a model."""
 
     is_valid: bool = True
@@ -60,16 +60,93 @@ class FieldBinding:
     @property
     def is_valid(self) -> bool:
         """Check if the current value is valid."""
-        return not self.validation_errors
+        return not self.validate()
 
-    @property
-    def validation_errors(self) -> list[str]:
-        """Get validation errors for the current value."""
-        return self.ui_state.get("validation_errors", [])
+    # @property
+    # def validation_errors(self) -> list[str]:
+    #     """Get validation errors for the current value."""
+    #     return self.ui_state.get("validation_errors", [])
 
-    def set_validation_errors(self, errors: list[str]) -> None:
-        """Set validation errors for this field."""
-        self.ui_state["validation_errors"] = errors
+    # def set_validation_errors(self, errors: list[str]) -> None:
+    #     """Set validation errors for this field."""
+    #     self.ui_state["validation_errors"] = errors
+
+    def validate(self) -> list[str]:
+        """Validate this field's current value.
+
+        Performs basic validation like required fields and constraint checks.
+
+        Returns:
+            List of validation error messages, empty if valid
+        """
+        errors = []
+        value = self.value
+        field = self.field
+
+        # Check if required
+        if value is None and not field.has_default and field.is_required:
+            errors.append("This field is required")
+            return errors
+
+        # Skip constraint validation for None values
+        if value is None:
+            return errors
+
+        # Type validation
+        # TODO: Implement better type checking
+
+        # Constraint validation
+        constraints = field.constraints
+
+        # Number constraints
+        if isinstance(value, int | float):
+            if constraints.min_value is not None:
+                if constraints.exclusive_min:
+                    if value <= constraints.min_value:
+                        errors.append(f"Must be greater than {constraints.min_value}")
+                elif value < constraints.min_value:
+                    errors.append(
+                        f"Must be greater than or equal to {constraints.min_value}"
+                    )
+
+            if constraints.max_value is not None:
+                if constraints.exclusive_max:
+                    if value >= constraints.max_value:
+                        errors.append(f"Must be less than {constraints.max_value}")
+                elif value > constraints.max_value:
+                    errors.append(
+                        f"Must be less than or equal to {constraints.max_value}"
+                    )
+
+            if (
+                constraints.multiple_of is not None
+                and value % constraints.multiple_of != 0
+            ):
+                errors.append(f"Must be a multiple of {constraints.multiple_of}")
+
+        # String constraints
+        if isinstance(value, str):
+            if constraints.min_length is not None and len(value) < constraints.min_length:
+                errors.append(f"Must be at least {constraints.min_length} characters")
+
+            if constraints.max_length is not None and len(value) > constraints.max_length:
+                errors.append(f"Must be at most {constraints.max_length} characters")
+
+            if constraints.pattern is not None:
+                import re
+
+                if not re.match(constraints.pattern, value):
+                    errors.append(f"Must match pattern: {constraints.pattern}")
+
+        # Collection constraints
+        if isinstance(value, list | tuple | set):
+            if constraints.min_items is not None and len(value) < constraints.min_items:
+                errors.append(f"Must have at least {constraints.min_items} items")
+
+            if constraints.max_items is not None and len(value) > constraints.max_items:
+                errors.append(f"Must have at most {constraints.max_items} items")
+
+        return errors
 
 
 @dataclass
@@ -92,7 +169,7 @@ class ModelBinding:
         """Get a field binding by name."""
         return self.get_field_binding(key)
 
-    def validate(self) -> ValidationResult:
+    def validate(self) -> ModelValidationResult:
         """Validate the current state of this binding."""
         # If the model has a custom validator, use it with the binding itself
         if self.model.validator:
@@ -101,14 +178,12 @@ class ModelBinding:
         # Basic validation if no custom validator
         errors: dict[str, Any] = {}
         for field_binding in self.fields:
-            field = field_binding.field
-            value = field_binding.value
+            # Get field-level validation errors
+            field_validation_errors = field_binding.validate()
+            if field_validation_errors:
+                errors[field_binding.field.name] = field_validation_errors
 
-            # Check required fields
-            if value is None and not field.has_default and field.is_required:
-                errors.setdefault(field.name, []).append("This field is required")
-
-        return ValidationResult(
+        return ModelValidationResult(
             is_valid=not errors,
             field_errors=errors,
             validated_instance=self.instance,
