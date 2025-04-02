@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-# Generic type for UI component/element return values
-T = TypeVar("T")
-
-
-class UIWidgetRenderer(Generic[T], ABC):
+class UIWidgetRenderer[T](ABC):
     """Low-level UI widget rendering interface.
 
     UI libraries implementing this interface should render widgets using their
