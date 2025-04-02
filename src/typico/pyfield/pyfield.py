@@ -95,6 +95,20 @@ class PyField[T]:
     metadata: dict[str, Any] = field(default_factory=dict)
     """Additional metadata associated with the field."""
 
+    # @property
+    # def field_type(self) -> str | None:
+    #     """Determine the appropriate field type based on the raw type and metadata."""
+    #     # Check explicit field_type in metadata
+    #     if "field_type" in self.metadata:
+    #         return self.metadata["field_type"]
+    #     origin = get_origin(self.raw_type)
+    #     if origin is Annotated:
+    #         args = get_args(self.raw_type)
+    #         for arg in args[1:]:
+    #             if isinstance(arg, dict) and "field_type" in arg:
+    #                 return arg["field_type"]
+    #     return None
+
     @classmethod
     def from_fieldz(cls, fieldz_field: fieldz.Field, parent_model: type) -> PyField:
         """Convert a fieldz Field to PyField.
@@ -217,6 +231,27 @@ class PyField[T]:
         from typico.pyfield import pydantic_adapter
 
         return pydantic_adapter.to_pyfield(name, parent_model)
+
+    def is_of_type(self, target_type: type | tuple[type, ...]) -> bool:
+        """Check if this field's type matches the target type.
+
+        Handles both direct types and type annotations with origins.
+
+        Args:
+            target_type: The type or tuple of types to check against
+
+        Returns:
+            True if the field is of the target type, False otherwise
+        """
+        if self.raw_type is target_type:
+            return True
+        if isinstance(target_type, tuple):
+            if self.raw_type in target_type:
+                return True
+            origin = getattr(self.raw_type, "__origin__", None)
+            return origin in target_type if origin is not None else False
+        origin = getattr(self.raw_type, "__origin__", None)
+        return origin is target_type if origin is not None else False
 
 
 def get_fields(model_class: type) -> list[PyField]:
