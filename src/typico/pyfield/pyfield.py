@@ -17,6 +17,21 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound="BaseModel")
 
 
+class _MissingSentinel:
+    """Sentinel singleton for representing missing values."""
+
+    def __repr__(self) -> str:
+        return "MISSING_VALUE"
+
+    def __bool__(self) -> bool:
+        """MISSING always evaluates to False in boolean context."""
+        return False
+
+
+# Create the singleton instance
+MISSING_VALUE = _MissingSentinel()
+
+
 def extract_from_annotated(type_annotation: Any, name: str) -> tuple[Any, Any | None]:
     """Extract the base type and a named metadata value from an Annotated type.
 
@@ -83,7 +98,7 @@ class PyField[T]:
     is_required: bool = True
     """Whether the field is required for validation."""
 
-    default: Any = None
+    default: Any = MISSING_VALUE
     """The default value for the field."""
 
     has_default: bool = False
@@ -174,12 +189,13 @@ class PyField[T]:
         elif examples and examples[0] is not None:
             placeholder = str(examples[0])
 
-        # Determine if field has default or is required
+        # Convert fieldz.MISSING to our own sentinel
         has_default = (
             fieldz_field.default != fieldz.Field.MISSING
             or fieldz_field.default_factory != fieldz.Field.MISSING
         )
-        default = None
+
+        default: Any = MISSING_VALUE  # Start with our sentinel
         if fieldz_field.default != fieldz.Field.MISSING:
             default = fieldz_field.default
         elif fieldz_field.default_factory != fieldz.Field.MISSING:
