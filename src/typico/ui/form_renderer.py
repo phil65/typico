@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from typico.pyfield import FieldBinding, bind_model
+from typico.pyfield import bind_model
 
 
 if TYPE_CHECKING:
+    from typico.pyfield import FieldBinding
     from typico.pyfield.bindings import ModelValidationResult
     from typico.pyfield.pyfield import PyField
     from typico.ui.base_renderer import UIWidgetRenderer

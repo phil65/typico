@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 from pydantic import ValidationError
 
 from typico.pyfield.bindings import (
-    ModelBinding,
     ModelValidationResult,
     ValidationErrorDetail,
 )
@@ -18,6 +17,10 @@ from typico.pyfield.pymodel import PyModel
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+
+    from typico.pyfield.bindings import (
+        ModelBinding,
+    )
 
 
 def to_pymodel(model_class: type[BaseModel]):

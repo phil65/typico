@@ -4,13 +4,14 @@ from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from typico.pyfield.pyfield import PyField, get_fields as get_model_fields
+from typico.pyfield.pyfield import get_fields as get_model_fields
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from typico.pyfield.bindings import ModelBinding, ModelValidationResult
+    from typico.pyfield.pyfield import PyField
 
 
 @dataclass
