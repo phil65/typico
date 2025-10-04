@@ -106,7 +106,7 @@ def test_nested_model_field():
     """Test handling of nested model fields."""
     field = PyField.from_pydantic("address", _TestModel)
 
-    assert field.raw_type == Optional[Address]
+    assert field.raw_type == Optional[Address]  # noqa: UP045
     assert field.is_required is False  # Should be optional
 
 
