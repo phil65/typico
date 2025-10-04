@@ -2,8 +2,6 @@
 
 [![PyPI License](https://img.shields.io/pypi/l/typico.svg)](https://pypi.org/project/typico/)
 [![Package status](https://img.shields.io/pypi/status/typico.svg)](https://pypi.org/project/typico/)
-[![Daily downloads](https://img.shields.io/pypi/dd/typico.svg)](https://pypi.org/project/typico/)
-[![Weekly downloads](https://img.shields.io/pypi/dw/typico.svg)](https://pypi.org/project/typico/)
 [![Monthly downloads](https://img.shields.io/pypi/dm/typico.svg)](https://pypi.org/project/typico/)
 [![Distribution format](https://img.shields.io/pypi/format/typico.svg)](https://pypi.org/project/typico/)
 [![Wheel availability](https://img.shields.io/pypi/wheel/typico.svg)](https://pypi.org/project/typico/)
@@ -21,11 +19,8 @@
 [![Github last commit](https://img.shields.io/github/last-commit/phil65/typico)](https://github.com/phil65/typico/commits)
 [![Github release date](https://img.shields.io/github/release-date/phil65/typico)](https://github.com/phil65/typico/releases)
 [![Github language count](https://img.shields.io/github/languages/count/phil65/typico)](https://github.com/phil65/typico)
-[![Github commits this week](https://img.shields.io/github/commit-activity/w/phil65/typico)](https://github.com/phil65/typico)
 [![Github commits this month](https://img.shields.io/github/commit-activity/m/phil65/typico)](https://github.com/phil65/typico)
-[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/typico)](https://github.com/phil65/typico)
 [![Package status](https://codecov.io/gh/phil65/typico/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/typico/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyUp](https://pyup.io/repos/github/phil65/typico/shield.svg)](https://pyup.io/repos/github/phil65/typico/)
 
 [Read the documentation!](https://phil65.github.io/typico/)
