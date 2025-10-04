@@ -269,6 +269,114 @@ class PyField[T]:
         origin = getattr(self.raw_type, "__origin__", None)
         return origin is target_type if origin is not None else False
 
+    def get_initial_value(self) -> Any:
+        """Get an appropriate initial value for this field.
+
+        Uses the following priority order:
+        1. Default value if present
+        2. First example if available
+        3. Type-based default respecting constraints
+
+        Returns:
+            An appropriate initial value for the field
+        """
+        # First, check if there's an explicit default
+        if self.has_default:
+            return self.default
+
+        # Next, check examples
+        if self.examples:
+            return self.examples[0]
+
+        # Finally, create a type-appropriate default
+        return self._create_default_based_on_type()
+
+    def _create_default_based_on_type(self) -> Any:  # noqa: PLR0911
+        """Create a default value based on the field's type structure."""
+        from typing import (
+            Literal,
+            Union,
+            get_args,
+            get_origin,
+        )
+
+        def is_type_origin(typ, origin_type):
+            return get_origin(typ) is origin_type
+
+        raw_type = self.raw_type
+        if is_type_origin(raw_type, Literal):
+            values = get_args(raw_type)
+            return values[0] if values else None
+        if is_type_origin(raw_type, Union):
+            args = get_args(raw_type)
+            # If None is in the union, it's Optional
+            if type(None) in args:
+                non_none_types = [t for t in args if t is not type(None)]
+                if non_none_types:
+                    return self._create_primitive_type_default(non_none_types[0])
+                return None
+            return self._create_primitive_type_default(args[0]) if args else None
+
+        if is_type_origin(raw_type, list) or raw_type is list:
+            return []
+        if is_type_origin(raw_type, dict) or raw_type is dict:
+            return {}
+        if is_type_origin(raw_type, set) or raw_type is set:
+            return set()
+        if is_type_origin(raw_type, tuple) or raw_type is tuple:
+            return ()
+
+        return self._create_primitive_type_default(raw_type)
+
+    def _create_primitive_type_default(self, typ: Any) -> Any:  # noqa: PLR0911
+        """Create a default value for a primitive or concrete type."""
+        from datetime import date, datetime, time
+        from decimal import Decimal
+        from enum import Enum
+        import inspect
+
+        if typ is str:
+            if self.constraints.min_length and self.constraints.min_length > 0:
+                return " " * self.constraints.min_length
+            return ""
+        if typ is int:
+            if self.constraints.min_value is not None and self.constraints.min_value > 0:
+                return int(self.constraints.min_value)
+            return 0
+        if typ is float:
+            if self.constraints.min_value is not None and self.constraints.min_value > 0:
+                return float(self.constraints.min_value)
+            return 0.0
+        if typ is bool:
+            return False
+        if typ is Decimal:
+            if self.constraints.min_value is not None and self.constraints.min_value > 0:
+                return Decimal(str(self.constraints.min_value))
+            return Decimal("0")
+        if typ is date or typ is datetime:
+            return datetime.now()
+        if typ is time:
+            return datetime.now().time()
+
+        try:
+            if inspect.isclass(typ) and issubclass(typ, Enum):
+                # Return the first enum value
+                values = list(typ.__members__.values())
+                return values[0] if values else None
+        except (TypeError, AttributeError, IndexError):
+            pass
+
+        # Handle nested models
+        if inspect.isclass(typ):
+            try:
+                # Check if this appears to be a model class (dataclass or pydantic-like)
+                if hasattr(typ, "__annotations__") or hasattr(typ, "model_fields"):
+                    return typ()
+            except Exception:  # noqa: BLE001
+                pass  # If instantiation fails, fall through to default
+
+        return None
+
 
 def get_fields(model_class: type) -> list[PyField]:
     """Extract fields from a model class and convert to PyFields."""

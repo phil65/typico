@@ -73,19 +73,12 @@ class FormRenderer:
         Returns:
             The UI element rendered by the UI renderer
         """
-        # Skip hidden fields
         if binding.field.hidden:
             return None
 
         handler = self.get_handler(binding.field)
-
-        # Get renderer method name and kwargs
         method_name, kwargs = handler.prepare_for_render(binding)
-
-        # Get the actual renderer method
         renderer_method = getattr(self.ui_renderer, method_name)
-
-        # Call the renderer method with the prepared kwargs
         return renderer_method(**kwargs)
 
     def render_model(
@@ -101,18 +94,13 @@ class FormRenderer:
             If the form wasn't submitted, validation_result will be None
         """
         binding = bind_model(model_instance)
-
-        # Create the form container
         with self.ui_renderer.create_form_container(binding.model.name):
             # Render each field
             for field_binding in binding.fields:
                 if not field_binding.field.hidden:
                     self.render_field(field_binding)
-
-            # Render submit button
             submitted = self.ui_renderer.render_submit_button()
 
-        # Handle submission and validation
         if submitted:
             result = binding.validate()
 

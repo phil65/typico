@@ -70,10 +70,7 @@ class PydanticField:
         Returns:
             List of PydanticField objects representing each field
         """
-        # Convert instance to class if needed
         model_class = model if inspect.isclass(model) else model.__class__
-
-        # Get model schema
         schema = model_class.model_json_schema()
         properties = schema.get("properties", {})
         required_fields = set(schema.get("required", []))
@@ -288,8 +285,6 @@ class PydanticField:
         """Get validation constraints for this field."""
         constraints = {}
         schema_props = self.get_json_schema_properties()
-
-        # Common constraints
         for prop in [
             "minimum",
             "maximum",
@@ -314,7 +309,7 @@ class PydanticField:
 
 
 if __name__ == "__main__":
-    # Example usage
+
     class Address(BaseModel):
         street: str
         city: str
