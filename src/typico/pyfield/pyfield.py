@@ -193,7 +193,7 @@ class PyField[T]:
             default = fieldz_field.default
         elif fieldz_field.default_factory != fieldz.Field.MISSING:
             with contextlib.suppress(Exception):
-                default = fieldz_field.default_factory()
+                default = fieldz_field.default_factory()  # type: ignore
         is_required = not (
             fieldz_field.default != fieldz.Field.MISSING
             or fieldz_field.default_factory != fieldz.Field.MISSING

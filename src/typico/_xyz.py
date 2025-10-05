@@ -61,7 +61,7 @@ class PydanticField:
         self.is_required = is_required
 
     @classmethod
-    def from_model(cls, model: type[T] | T) -> list[PydanticField]:
+    def from_model(cls, model: type[BaseModel] | BaseModel) -> list[PydanticField]:
         """Extract field information from a Pydantic model class or instance.
 
         Args:
@@ -71,11 +71,11 @@ class PydanticField:
             List of PydanticField objects representing each field
         """
         model_class = model if inspect.isclass(model) else model.__class__
-        schema = model_class.model_json_schema()
+        schema = model_class.model_json_schema()  # type: ignore
         properties = schema.get("properties", {})
         required_fields = set(schema.get("required", []))
         result = []
-        for field_name, field_info in model_class.model_fields.items():
+        for field_name, field_info in model_class.model_fields.items():  # type: ignore
             field_schema = properties.get(field_name, {})
             description = field_schema.get("description")
             is_required = field_name in required_fields
@@ -85,7 +85,7 @@ class PydanticField:
                 name=field_name,
                 raw_type=field_type,
                 field_info=field_info,
-                parent_model=model_class,
+                parent_model=model_class,  # type: ignore
                 default=default,
                 description=description,
                 is_required=is_required,

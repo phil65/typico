@@ -159,7 +159,7 @@ def create_default_instance(model_class: type) -> Any:
         elif hasattr(field, "default_factory") and field.default_factory != "MISSING":
             try:
                 # Use the field's default factory
-                default_values[field_name] = field.default_factory()  # pyright: ignore
+                default_values[field_name] = field.default_factory()  # type: ignore
                 has_default = True
             except Exception:  # noqa: BLE001
                 # If default_factory fails, fall back to type-based defaults
