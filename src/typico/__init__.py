@@ -1,4 +1,7 @@
-"""Typico: Type helpers and abstractions"""
+"""Typico: main package.
+
+Type helpers and abstractions.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +9,7 @@ from importlib.metadata import version
 
 __version__ = version("typico")
 __title__ = "Typico"
-__description__ = "Type helpers and abstractions"
+
 __author__ = "Philipp Temminghoff"
 __author_email__ = "philipptemminghoff@googlemail.com"
 __copyright__ = "Copyright (c) 2025 Philipp Temminghoff"
