@@ -1,5 +1,6 @@
 [project]
 name = "typico"
+version = "0.0.2"
 description = "Type helpers and abstractions"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,7 +27,6 @@ dependencies = [
   # Only add below (Copier)
   "typing-inspection>=0.4.0",
 ]
-dynamic = ["version"]
 
 [project.urls]
 "Code coverage" = "https://app.codecov.io/gh/phil65/typico"
@@ -57,7 +57,7 @@ lint = [
 ]
 
 [build-system]
-requires = ["hatch-regex-commit", "hatchling"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.coverage.report]
@@ -68,11 +68,6 @@ exclude_lines = [
   "except ImportError",
   'if __name__ == "__main__":',
 ]
-
-[tool.hatch.version]
-source = "regex_commit"
-commit_extra_args = ["-e"]
-path = "src/typico/__init__.py"
 
 [tool.mknodes]
 allowed-commit-types = [

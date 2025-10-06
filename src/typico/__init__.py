@@ -1,4 +1,8 @@
-__version__ = "0.0.2"
+from __future__ import annotations
+
+from importlib.metadata import version
+
+__version__ = version("typico")
 
 from typico.pyfield import (
     Constraints,
@@ -12,6 +16,7 @@ from typico.pyfield import (
 )
 
 __all__ = [
+    "__version__",
     "Constraints",
     "FieldBinding",
     "ModelBinding",
