@@ -16,12 +16,12 @@ from typico.pyfield import (
 )
 
 __all__ = [
-    "__version__",
     "Constraints",
     "FieldBinding",
     "ModelBinding",
     "PyField",
     "PyModel",
+    "__version__",
     "bind_model",
     "get_fields",
     "get_model",
