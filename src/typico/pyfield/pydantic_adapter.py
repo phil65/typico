@@ -52,8 +52,7 @@ def to_pymodel(model_class: type[BaseModel]):
     def validator_wrapper(binding: ModelBinding) -> ModelValidationResult:
         try:
             data = {
-                field_binding.field.name: field_binding.value
-                for field_binding in binding.fields
+                field_binding.field.name: field_binding.value for field_binding in binding.fields
             }
             instance = model_class.model_validate(data)
             return ModelValidationResult(is_valid=True, validated_instance=instance)
@@ -134,9 +133,7 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
     is_required = name in schema.get("required", [])
     from pydantic.fields import PydanticUndefined
 
-    default_value = (
-        MISSING_VALUE if field_info.default is PydanticUndefined else field_info.default
-    )
+    default_value = MISSING_VALUE if field_info.default is PydanticUndefined else field_info.default
     metadata = {}
     if field_info.json_schema_extra:
         if isinstance(field_info.json_schema_extra, dict):

@@ -82,9 +82,7 @@ class FormRenderer:
         renderer_method = getattr(self.ui_renderer, method_name)
         return renderer_method(**kwargs)
 
-    def render_model(
-        self, model_instance: Any
-    ) -> tuple[bool, ModelValidationResult | None]:
+    def render_model(self, model_instance: Any) -> tuple[bool, ModelValidationResult | None]:
         """Render a complete form for a model instance.
 
         Args:

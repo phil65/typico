@@ -140,11 +140,7 @@ class PydanticField:
     def _is_pydantic_model(self, typ) -> bool:
         """Check if a type is a Pydantic model."""
         try:
-            return (
-                inspect.isclass(typ)
-                and issubclass(typ, BaseModel)
-                and typ is not BaseModel
-            )
+            return inspect.isclass(typ) and issubclass(typ, BaseModel) and typ is not BaseModel
         except TypeError:
             return False
 
@@ -154,9 +150,7 @@ class PydanticField:
             args = get_args(self.raw_type)
             non_none_args = [t for t in args if t is not type(None)]
             if len(non_none_args) == 1:
-                return inspect.isclass(non_none_args[0]) and issubclass(
-                    non_none_args[0], Enum
-                )
+                return inspect.isclass(non_none_args[0]) and issubclass(non_none_args[0], Enum)
         return inspect.isclass(self.raw_type) and issubclass(self.raw_type, Enum)
 
     def is_primitive_type(self) -> bool:
@@ -219,9 +213,7 @@ class PydanticField:
                 # Get the first enum value
                 enum_class = self.raw_type
                 if self.is_optional_type():
-                    non_none_types = [
-                        t for t in get_args(self.raw_type) if t is not type(None)
-                    ]
+                    non_none_types = [t for t in get_args(self.raw_type) if t is not type(None)]
                     enum_class = non_none_types[0] if non_none_types else None
 
                 if enum_class:
@@ -233,9 +225,7 @@ class PydanticField:
         if self.is_nested_model():
             model_class = self.raw_type
             if self.is_optional_type():
-                non_none_types = [
-                    t for t in get_args(self.raw_type) if t is not type(None)
-                ]
+                non_none_types = [t for t in get_args(self.raw_type) if t is not type(None)]
                 model_class = non_none_types[0] if non_none_types else None
 
             if model_class:
@@ -249,11 +239,7 @@ class PydanticField:
             is_primitive(self.raw_type)
             or (
                 self.is_optional_type()
-                and any(
-                    is_primitive(t)
-                    for t in get_args(self.raw_type)
-                    if t is not type(None)
-                )
+                and any(is_primitive(t) for t in get_args(self.raw_type) if t is not type(None))
             )
         ) and isinstance(self.raw_type, type):
             if issubclass(self.raw_type, str):

@@ -35,10 +35,7 @@ class ModelValidationResult:
     @property
     def field_messages(self) -> dict[str, list[str]]:
         """Get human-readable error messages by field."""
-        return {
-            field: [err.msg for err in errors]
-            for field, errors in self.field_errors.items()
-        }
+        return {field: [err.msg for err in errors] for field, errors in self.field_errors.items()}
 
     @property
     def global_messages(self) -> list[str]:
@@ -159,10 +156,7 @@ class FieldBinding:
                     )
                     errors.append(detail)
 
-            if (
-                constraints.multiple_of is not None
-                and value % constraints.multiple_of != 0
-            ):
+            if constraints.multiple_of is not None and value % constraints.multiple_of != 0:
                 detail = ValidationErrorDetail(
                     type="value_error.number.not_multiple",
                     msg=f"Must be a multiple of {constraints.multiple_of}",
@@ -230,10 +224,7 @@ class FieldBinding:
                 errors.append(detail)
 
         # Check allowed values
-        if (
-            constraints.allowed_values is not None
-            and value not in constraints.allowed_values
-        ):
+        if constraints.allowed_values is not None and value not in constraints.allowed_values:
             vals = ", ".join(str(v) for v in constraints.allowed_values)
             detail = ValidationErrorDetail(
                 type="value_error.not_in_enum",
