@@ -200,7 +200,7 @@ def get_description(field: fieldz.Field) -> str | None:
     if "description" in field.metadata:
         return field.metadata["description"]
     if hasattr(field.native_field, "description"):
-        return field.native_field.description  # type: ignore
+        return field.native_field.description
     return None
 
 

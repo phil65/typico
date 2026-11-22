@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, StrEnum
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args, get_origin
 
@@ -48,6 +48,7 @@ class PydanticField:
         raw_type: AnyType,
         field_info: FieldInfo,
         parent_model: type[BaseModel],
+        *,
         default: Any = None,
         description: str | None = None,
         is_required: bool = False,
@@ -71,11 +72,11 @@ class PydanticField:
             List of PydanticField objects representing each field
         """
         model_class = model if inspect.isclass(model) else model.__class__
-        schema = model_class.model_json_schema()  # type: ignore
+        schema = model_class.model_json_schema()
         properties = schema.get("properties", {})
         required_fields = set(schema.get("required", []))
         result = []
-        for field_name, field_info in model_class.model_fields.items():  # type: ignore
+        for field_name, field_info in model_class.model_fields.items():
             field_schema = properties.get(field_name, {})
             description = field_schema.get("description")
             is_required = field_name in required_fields
@@ -85,7 +86,7 @@ class PydanticField:
                 name=field_name,
                 raw_type=field_type,
                 field_info=field_info,
-                parent_model=model_class,  # type: ignore
+                parent_model=model_class,
                 default=default,
                 description=description,
                 is_required=is_required,
@@ -301,7 +302,7 @@ if __name__ == "__main__":
         city: str
         zip_code: str
 
-    class UserStatus(str, Enum):
+    class UserStatus(StrEnum):
         ACTIVE = "active"
         INACTIVE = "inactive"
         PENDING = "pending"

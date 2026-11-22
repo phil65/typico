@@ -30,7 +30,7 @@ def to_pymodel(model_class: type[BaseModel]):
     description = inspect.getdoc(model_class)
     metadata = {}
     config = model_class.model_config
-    schema = model_class.model_json_schema()  # type: ignore
+    schema = model_class.model_json_schema()
     title = schema.get("title", title)
     # Get description from schema if available
     if not description and "description" in schema:
@@ -147,7 +147,7 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
     return PyField(
         name=name,
         raw_type=raw_type,
-        parent_model=parent_model,  # type: ignore
+        parent_model=parent_model,
         field_type=field_type,
         title=field_info.title or name.replace("_", " ").capitalize(),
         description=field_info.description,

@@ -38,11 +38,13 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from typico import get_model, get_fields, bind_model
 
+
 # Works with Pydantic models
 class User(BaseModel):
     name: str = Field(description="User's full name")
     email: Annotated[str, {"field_type": "email"}]
     age: int = Field(ge=0, le=120, default=30)
+
 
 # And with dataclasses
 @dataclass
@@ -51,6 +53,7 @@ class Config:
     """Server hostname"""
     port: int = 8080
     """Port number"""
+
 
 # Get field information
 user_fields = get_fields(User)
@@ -65,7 +68,7 @@ print(f"Model: {user_model.name}, Fields: {len(user_model.fields)}")
 user = User(name="Jane", email="jane@example.com")
 binding = bind_model(user)
 print(f"Current name: {binding['name'].value}")
-binding['name'].value = "Jane Doe"  # Update the value
+binding["name"].value = "Jane Doe"  # Update the value
 ```
 
 ## Top-Level API
@@ -88,20 +91,20 @@ The `PyField` class provides rich metadata about a field:
 ```python
 @dataclass
 class PyField:
-    name: str                 # Field name
-    raw_type: Any             # Python type annotation
-    parent_model: type | None # Parent model class
-    field_type: str | None    # Custom field type (from annotations)
-    title: str | None         # Display title
-    description: str | None   # Detailed description
-    placeholder: str | None   # Placeholder text
-    examples: list[Any] | None # Example values
-    hidden: bool              # Whether field should be hidden
-    readonly: bool            # Whether field is immutable
-    deprecated: bool          # Whether field is deprecated
-    is_required: bool         # Whether field is required
-    default: Any              # Default value
-    has_default: bool         # Whether field has a default
+    name: str  # Field name
+    raw_type: Any  # Python type annotation
+    parent_model: type | None  # Parent model class
+    field_type: str | None  # Custom field type (from annotations)
+    title: str | None  # Display title
+    description: str | None  # Detailed description
+    placeholder: str | None  # Placeholder text
+    examples: list[Any] | None  # Example values
+    hidden: bool  # Whether field should be hidden
+    readonly: bool  # Whether field is immutable
+    deprecated: bool  # Whether field is deprecated
+    is_required: bool  # Whether field is required
+    default: Any  # Default value
+    has_default: bool  # Whether field has a default
     constraints: Constraints  # Validation constraints
     metadata: dict[str, Any]  # Additional metadata
 ```
@@ -138,16 +141,16 @@ The `Constraints` class captures validation rules for a field:
 ```python
 @dataclass
 class Constraints:
-    min_value: float | None = None      # Minimum value
-    max_value: float | None = None      # Maximum value
-    exclusive_min: bool = False         # Is min exclusive?
-    exclusive_max: bool = False         # Is max exclusive?
-    multiple_of: float | None = None    # Must be multiple of
-    min_length: int | None = None       # Minimum length
-    max_length: int | None = None       # Maximum length
-    pattern: str | None = None          # Regex pattern
-    min_items: int | None = None        # Min collection items
-    max_items: int | None = None        # Max collection items
+    min_value: float | None = None  # Minimum value
+    max_value: float | None = None  # Maximum value
+    exclusive_min: bool = False  # Is min exclusive?
+    exclusive_max: bool = False  # Is max exclusive?
+    multiple_of: float | None = None  # Must be multiple of
+    min_length: int | None = None  # Minimum length
+    max_length: int | None = None  # Maximum length
+    pattern: str | None = None  # Regex pattern
+    min_items: int | None = None  # Min collection items
+    max_items: int | None = None  # Max collection items
     allowed_values: list[Any] | None = None  # Allowed values
 ```
 
@@ -197,6 +200,7 @@ Typico supports custom field types through the `field_type` attribute in `PyFiel
 from typing import Annotated
 from pydantic import BaseModel
 
+
 class User(BaseModel):
     username: str
     email: Annotated[str, {"field_type": "email"}]
@@ -215,6 +219,7 @@ Typico is designed to work seamlessly with UI frameworks:
 # Example with a hypothetical UI library
 from typico import bind_model
 from my_ui_lib import Form, TextField, EmailField, NumberField
+
 
 def create_form(model_instance):
     binding = bind_model(model_instance)

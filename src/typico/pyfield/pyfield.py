@@ -213,7 +213,7 @@ class PyField[T]:
         return cls(
             name=fieldz_field.name,
             raw_type=raw_type,
-            parent_model=parent_model,  # pyright: ignore
+            parent_model=parent_model,  # pyright: ignore  # ty: ignore[invalid-argument-type]
             field_type=field_type,
             title=fieldz_field.title or fieldz_field.name.replace("_", " ").capitalize(),
             description=fieldz_field.description,
@@ -391,7 +391,7 @@ def get_fields(model_class: type) -> list[PyField]:
     for f in fieldz.fields(model_class, parse_annotated=True):
         # If this is a dataclass field with no description but has a docstring, use it
         if not f.description and f.name in field_docstrings:
-            f.description = field_docstrings[f.name]
+            f = dataclasses.replace(f, description=field_docstrings[f.name])
 
         result.append(PyField.from_fieldz(f, parent_model=model_class))
     return result

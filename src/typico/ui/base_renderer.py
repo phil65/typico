@@ -18,7 +18,7 @@ class UIWidgetRenderer[T](ABC):
     """
 
     @abstractmethod
-    def render_text_input(
+    def render_text_input(  # noqa: PLR0917
         self,
         value: str,
         label: str,
@@ -31,7 +31,7 @@ class UIWidgetRenderer[T](ABC):
         """Render a single-line text input."""
 
     @abstractmethod
-    def render_text_area(
+    def render_text_area(  # noqa: PLR0917
         self,
         value: str,
         label: str,
@@ -44,7 +44,7 @@ class UIWidgetRenderer[T](ABC):
         """Render a multi-line text input."""
 
     @abstractmethod
-    def render_number_input(
+    def render_number_input(  # noqa: PLR0917
         self,
         value: float | None,
         label: str,
@@ -70,7 +70,7 @@ class UIWidgetRenderer[T](ABC):
         """Render a checkbox for boolean values."""
 
     @abstractmethod
-    def render_select(
+    def render_select(  # noqa: PLR0917
         self,
         value: Any,
         options: list[tuple[Any, str]],  # (value, label) pairs
