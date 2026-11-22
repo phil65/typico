@@ -304,7 +304,10 @@ class ModelBinding:
             name: The field name
 
         Returns:
-            The FieldBinding if found, otherwise None
+            The FieldBinding for the field
+
+        Raises:
+            KeyError: If the model has no field with that name
         """
         for binding in self.fields:
             if binding.field.name == name:

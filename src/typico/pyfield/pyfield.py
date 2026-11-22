@@ -72,7 +72,7 @@ class PyField[T]:
     """The parent model class containing this field."""
 
     field_type: str | None = None
-    """The field type, based on Annoated convention."""
+    """Custom field type hint (e.g. "email"), from `Annotated[T, {"field_type": ...}]`."""
 
     title: str | None = None
     """Display title for the field."""
