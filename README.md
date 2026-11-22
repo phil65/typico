@@ -22,217 +22,143 @@
 [![Package status](https://codecov.io/gh/phil65/typico/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/typico/)
 [![PyUp](https://pyup.io/repos/github/phil65/typico/shield.svg)](https://pyup.io/repos/github/phil65/typico/)
 
+
 [Read the documentation!](https://phil65.github.io/typico/)
 
+Typico is an introspection layer for Python data models. It reads Pydantic models,
+dataclasses and other [fieldz](https://github.com/pyapp-kit/fieldz)-supported classes and
+describes them with one uniform set of objects: field metadata, validation constraints and
+instance bindings. That makes it a good foundation for form generators, UI frameworks and
+other tools that need to "understand" a model without caring which library defined it.
 
-# Typico
+## Installation
 
-Typico is a powerful introspection library for Python data models, making it easy to work with Pydantic models, dataclasses, and other structured data in UI frameworks, form generators, and more.
+```bash
+pip install typico
+```
 
-## Quick Start
+Requires Python 3.13+.
+
+## Quick start
 
 ```python
 from dataclasses import dataclass
 from typing import Annotated
+
 from pydantic import BaseModel, Field
-from typico import get_model, get_fields, bind_model
+
+from typico import bind_model, get_fields, get_model
 
 
-# Works with Pydantic models
 class User(BaseModel):
     name: str = Field(description="User's full name")
     email: Annotated[str, {"field_type": "email"}]
     age: int = Field(ge=0, le=120, default=30)
 
 
-# And with dataclasses
 @dataclass
 class Config:
     host: str = "localhost"
     """Server hostname"""
+
     port: int = 8080
     """Port number"""
 
 
-# Get field information
-user_fields = get_fields(User)
-for field in user_fields:
-    print(f"{field.name}: {field.raw_type} (required: {field.is_required})")
+# Field metadata, the same API for pydantic models and dataclasses
+for field in get_fields(User):
+    print(field.name, field.raw_type, field.field_type, field.is_required)
+# name <class 'str'> None True
+# email <class 'str'> email True
+# age <class 'int'> None False
 
-# Get complete model information
-user_model = get_model(User)
-print(f"Model: {user_model.name}, Fields: {len(user_model.fields)}")
+print(get_fields(Config)[0].description)  # "Server hostname" (from the attribute docstring)
+print(get_fields(User)[2].constraints.max_value)  # 120
 
-# Create bindings to a specific instance
+# Model metadata
+model = get_model(User)
+print(model.name, [f.name for f in model.get_fields(required=True)])  # User ['name', 'email']
+
+# Bind metadata to an instance, read / write values and validate
 user = User(name="Jane", email="jane@example.com")
 binding = bind_model(user)
-print(f"Current name: {binding['name'].value}")
-binding["name"].value = "Jane Doe"  # Update the value
+binding["name"].value = "Jane Doe"
+binding["age"].value = 500
+result = binding.validate()
+print(result.is_valid, result.field_messages)
+# False {'age': ['Input should be less than or equal to 120']}
 ```
 
-## Top-Level API
+## Key features
 
-| Function/Class   | Description                                                 |
-|------------------|-------------------------------------------------------------|
-| `PyField`        | Field metadata representation                               |
-| `PyModel`        | Model metadata representation                               |
-| `Constraints`    | Field validation constraints                                |
-| `FieldBinding`   | Connects a field definition to an instance value            |
-| `ModelBinding`   | Connects a model definition to an instance                  |
-| `get_fields()`   | Extract field metadata from a model class                   |
-| `get_model()`    | Create a PyModel from a model class                         |
-| `bind_model()`   | Create bindings between a model definition and an instance  |
+- **One API for many model libraries**: Pydantic models, dataclasses and anything
+  [fieldz](https://github.com/pyapp-kit/fieldz) understands (attrs, msgspec, ...).
+- **Rich field metadata** (`PyField`): type, title, description (also from dataclass
+  attribute docstrings), examples / placeholder, default (`MISSING_VALUE` if none),
+  required / hidden / readonly / deprecated flags and extra metadata.
+- **Constraints** (`Constraints`): min / max values (inclusive or exclusive), `multiple_of`,
+  string and collection length, regex pattern, allowed values.
+- **Custom field types**: hint a widget with `Annotated[str, {"field_type": "email"}]` or
+  `Field(json_schema_extra={"field_type": "email"})`; available as `PyField.field_type`.
+- **Bindings** (`FieldBinding`, `ModelBinding`): connect metadata to an instance, get / set
+  values and validate. Pydantic models are validated with pydantic itself, other models with
+  the extracted constraints.
+- **UI building blocks** (`typico.ui`): abstract `UIWidgetRenderer`, `TypeHandler` and
+  `FormRenderer` classes to plug a concrete UI toolkit into.
 
-## Field Metadata (`PyField`)
+## Top-level API
 
-The `PyField` class provides rich metadata about a field:
+| Name             | Description                                                     |
+|------------------|-----------------------------------------------------------------|
+| `PyField`        | Field metadata                                                  |
+| `PyModel`        | Model metadata (fields, title, description, frozen, validator)  |
+| `Constraints`    | Validation constraints of a field                               |
+| `FieldBinding`   | A field bound to an instance (`value`, `validate()`, `is_valid`) |
+| `ModelBinding`   | A model bound to an instance (`binding["name"]`, `validate()`)  |
+| `get_fields()`   | Extract the `PyField`s of a model class                         |
+| `get_model()`    | Create a `PyModel` from a model class                           |
+| `bind_model()`   | Create a `ModelBinding` for an instance                         |
 
-```python
-@dataclass
-class PyField:
-    name: str  # Field name
-    raw_type: Any  # Python type annotation
-    parent_model: type | None  # Parent model class
-    field_type: str | None  # Custom field type (from annotations)
-    title: str | None  # Display title
-    description: str | None  # Detailed description
-    placeholder: str | None  # Placeholder text
-    examples: list[Any] | None  # Example values
-    hidden: bool  # Whether field should be hidden
-    readonly: bool  # Whether field is immutable
-    deprecated: bool  # Whether field is deprecated
-    is_required: bool  # Whether field is required
-    default: Any  # Default value
-    has_default: bool  # Whether field has a default
-    constraints: Constraints  # Validation constraints
-    metadata: dict[str, Any]  # Additional metadata
-```
-
-## Model Metadata (`PyModel`)
-
-The `PyModel` class encapsulates metadata about a model:
-
-```python
-@dataclass
-class PyModel:
-    name: str                # Model class name
-    fields: list[PyField]    # List of fields
-    title: str               # Human-readable title
-    description: str | None  # Detailed description
-    frozen: bool            # Whether model is immutable
-    metadata: dict[str, Any] # Additional metadata
-
-    # Get fields with optional filtering
-    def get_fields(
-        self,
-        required: bool | None = None,
-        hidden: bool | None = None,
-        readonly: bool | None = None,
-        deprecated: bool | None = None,
-        field_type: str | None = None,
-    ) -> list[PyField]
-```
-
-## Validation Constraints (`Constraints`)
-
-The `Constraints` class captures validation rules for a field:
-
-```python
-@dataclass
-class Constraints:
-    min_value: float | None = None  # Minimum value
-    max_value: float | None = None  # Maximum value
-    exclusive_min: bool = False  # Is min exclusive?
-    exclusive_max: bool = False  # Is max exclusive?
-    multiple_of: float | None = None  # Must be multiple of
-    min_length: int | None = None  # Minimum length
-    max_length: int | None = None  # Maximum length
-    pattern: str | None = None  # Regex pattern
-    min_items: int | None = None  # Min collection items
-    max_items: int | None = None  # Max collection items
-    allowed_values: list[Any] | None = None  # Allowed values
-```
-
-## Data Bindings
-
-Typico provides powerful bindings to connect model definitions with actual instances:
-
-### Field Binding
-
-```python
-@dataclass
-class FieldBinding:
-    field: PyField           # Field metadata
-    instance: Any            # Model instance
-    ui_state: dict[str, Any] # UI state
-    @property
-    def value(self) -> Any:  # Get current value
-    @value.setter
-    def value(self, new_value: Any): # Set new value
-    @property
-    def is_valid(self) -> bool:      # Check if valid
-    @property
-    def validation_errors(self) -> list[str]: # Get errors
-    def set_validation_errors(self, errors: list[str]) -> None
-
-
-### Model Binding
-
-```python
-@dataclass
-class ModelBinding:
-    model: PyModel           # Model metadata
-    instance: Any            # Model instance
-    fields: list[FieldBinding] # Field bindings
-    # Access fields by name
-    def __getitem__(self, key: str) -> FieldBinding
-    def get_field_binding(self, name: str) -> FieldBinding
-    @classmethod
-    def from_instance(cls, instance: object) -> ModelBinding
-```
-
-## Custom Field Types
-
-Typico supports custom field types through the `field_type` attribute in `PyField`. You can specify field types using the `Annotated` type:
+## Custom field types
 
 ```python
 from typing import Annotated
+
 from pydantic import BaseModel
 
+from typico import get_model
 
-class User(BaseModel):
+
+class Profile(BaseModel):
     username: str
     email: Annotated[str, {"field_type": "email"}]
     password: Annotated[str, {"field_type": "password"}]
-    avatar: Annotated[str, {"field_type": "image"}]
-    bio: Annotated[str, {"field_type": "markdown"}]
+    bio: Annotated[str, {"field_type": "markdown"}] = ""
+
+
+model = get_model(Profile)
+print([f.name for f in model.get_fields(field_type="email")])  # ['email']
 ```
 
-UI frameworks can use this information to render appropriate controls.
+## Building UI forms
 
-## Integration with UI Frameworks
+`typico.ui` contains the abstractions for rendering forms; it ships no concrete UI backend:
 
-Typico is designed to work seamlessly with UI frameworks:
+- `UIWidgetRenderer[T]`: implement `render_text_input`, `render_text_area`,
+  `render_number_input`, `render_checkbox`, `render_select`, `render_validation_errors`,
+  `create_form_container` and `render_submit_button` for your toolkit.
+- `TypeHandler`: decides whether it `can_handle(field)` and returns the renderer method name
+  plus keyword arguments from `prepare_for_render(binding)`. Handlers have a `priority`.
+- `FormRenderer`: register handlers with `register_handler()`, then call
+  `render_model(instance)`, which renders all visible fields, the submit button and, after
+  submission, validation errors.
 
 ```python
-# Example with a hypothetical UI library
-from typico import bind_model
-from my_ui_lib import Form, TextField, EmailField, NumberField
+from typico.ui import FormRenderer
 
-
-def create_form(model_instance):
-    binding = bind_model(model_instance)
-    form = Form(title=binding.model.title)
-
-    for field_binding in binding.fields:
-        if field_binding.field.hidden:
-            continue
-
-        # handle fields here
-
-        form.add_field(field)
-
-    return form
+renderer = FormRenderer(MyToolkitRenderer())  # your UIWidgetRenderer implementation
+renderer.register_handler(MyStringHandler())  # your TypeHandler implementations
+submitted, result = renderer.render_model(user)
 ```
 
 ## License
