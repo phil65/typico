@@ -32,7 +32,6 @@ dependencies = [
 
 [project.urls]
 "Code coverage" = "https://app.codecov.io/gh/phil65/typico"
-Discussions = "https://github.com/phil65/typico/discussions"
 Documentation = "https://phil65.github.io/typico/"
 Issues = "https://github.com/phil65/typico/issues"
 Source = "https://github.com/phil65/typico"
@@ -53,8 +52,10 @@ docs = [
   # Only add below (Copier)
 ]
 lint = [
-  "ruff",
-  "ty",
+  # Pinned on purpose: CI, pre-commit and editors all run exactly these versions.
+  # Bump them here (template) and roll out via `copier update`.
+  "ruff==0.17.6",
+  "ty==0.0.107",
   # Only add below (Copier)
 ]
 
@@ -211,6 +212,7 @@ ignore = [
   "PLR0912",  # Too many branches
   "PLR0913",  # Too many arguments to function call
   "PLR0915",  # Too many statements
+  "PLR0917",  # Too many positional arguments
   # "PLR2004", # Magic values instead of named consts
   "SLF001",  # Private member accessed
   "TRY003",  # Avoid specifying long messages outside the exception class

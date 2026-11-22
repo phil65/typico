@@ -9,7 +9,6 @@
 [![Implementation](https://img.shields.io/pypi/implementation/typico.svg)](https://pypi.org/project/typico/)
 [![Releases](https://img.shields.io/github/downloads/phil65/typico/total.svg)](https://github.com/phil65/typico/releases)
 [![Github Contributors](https://img.shields.io/github/contributors/phil65/typico)](https://github.com/phil65/typico/graphs/contributors)
-[![Github Discussions](https://img.shields.io/github/discussions/phil65/typico)](https://github.com/phil65/typico/discussions)
 [![Github Forks](https://img.shields.io/github/forks/phil65/typico)](https://github.com/phil65/typico/forks)
 [![Github Issues](https://img.shields.io/github/issues/phil65/typico)](https://github.com/phil65/typico/issues)
 [![Github Issues](https://img.shields.io/github/issues-pr/phil65/typico)](https://github.com/phil65/typico/pulls)
