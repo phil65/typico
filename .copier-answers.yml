@@ -9,7 +9,7 @@ copyright_holder: Philipp Temminghoff
 copyright_holder_email: philipptemminghoff@googlemail.com
 libraries_use_pydantic: false
 libraries_use_qt: false
-project_description: Type helpers and abstractions
+project_description: Uniform introspection and binding layer for Pydantic models, dataclasses and other data models
 project_name: Typico
 python_minimum_version: '3.13'
 python_package_command_line_name: typico

@@ -3,7 +3,7 @@
 [project]
 name = "typico"
 version = "1.0.1"
-description = "Type helpers and abstractions"
+description = "Uniform introspection and binding layer for Pydantic models, dataclasses and other data models"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
@@ -11,9 +11,22 @@ license-files = ["LICENSE"]
 authors = [
   { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
-keywords = []
+keywords = [
+  "data-model",
+  "dataclasses",
+  "fieldz",
+  "forms",
+  "introspection",
+  "metadata",
+  "pydantic",
+  "type-hints",
+  "ui",
+  "validation",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
+  "Framework :: Pydantic",
+  "Framework :: Pydantic :: 2",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
@@ -21,6 +34,8 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Topic :: Software Development",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: User Interfaces",
   "Topic :: Utilities",
   "Typing :: Typed",
 ]
@@ -33,6 +48,7 @@ dependencies = [
 [project.urls]
 "Code coverage" = "https://app.codecov.io/gh/phil65/typico"
 Documentation = "https://phil65.github.io/typico/"
+Homepage = "https://phil65.github.io/typico/"
 Issues = "https://github.com/phil65/typico/issues"
 Source = "https://github.com/phil65/typico"
 

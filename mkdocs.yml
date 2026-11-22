@@ -1,5 +1,5 @@
 site_name: "Typico"
-site_description: "Type helpers and abstractions"
+site_description: "Uniform introspection and binding layer for Pydantic models, dataclasses and other data models"
 repo_url: "https://github.com/phil65/typico/"
 site_url: https://phil65.github.io/typico/
 site_author: "Philipp Temminghoff"
