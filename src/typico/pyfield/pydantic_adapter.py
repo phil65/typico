@@ -156,7 +156,7 @@ def to_pyfield(name: str, parent_model: type[BaseModel]) -> PyField:
         else None,
         examples=field_info.examples,
         hidden=field_info.exclude or False,
-        readonly=getattr(field_info, "frozen", False),
+        readonly=bool(field_info.frozen),
         deprecated=field_info.deprecated is not None,
         is_required=is_required,
         default=default_value,

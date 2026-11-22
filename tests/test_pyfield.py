@@ -120,5 +120,16 @@ def test_examples_and_placeholder():
     assert field.placeholder == "gpt-3.5-turbo"  # First example becomes placeholder
 
 
+def test_readonly_is_bool():
+    """Test that readonly is a bool for both frozen and regular pydantic fields."""
+
+    class _Frozen(BaseModel):
+        locked: str = Field(default="x", frozen=True)
+        free: str = "y"
+
+    assert PyField.from_pydantic("locked", _Frozen).readonly is True
+    assert PyField.from_pydantic("free", _Frozen).readonly is False
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
