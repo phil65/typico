@@ -2,7 +2,7 @@
 
 [project]
 name = "typico"
-version = "1.0.0"
+version = "1.0.1"
 description = "Type helpers and abstractions"
 readme = "README.md"
 requires-python = ">=3.13"
